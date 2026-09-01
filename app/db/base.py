@@ -4,6 +4,7 @@ from app.models.base import Base
 from app.models.marketplace_shop import MarketplaceShop
 from app.models.oauth_account import OAuthAccount
 from app.models.oauth_state import OAuthState
+from app.models.order import Order
 from app.models.user import User
 from app.models.webhook_event import WebhookEvent
 
@@ -12,6 +13,7 @@ __all__ = [
     "MarketplaceShop",
     "OAuthAccount",
     "OAuthState",
+    "Order",
     "User",
     "WebhookEvent",
 ]

@@ -7,7 +7,10 @@ Service layer ต้องเขียนโค้ดกับ Protocol นี�
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from app.marketplaces.schemas import NormalizedOrder
 
 
 class Platform(StrEnum):
@@ -71,4 +74,14 @@ class MarketplaceClient(Protocol):
 
     async def refresh_token(self, refresh_token: str) -> TokenBundle:
         """ต่ออายุ access token ด้วย refresh token."""
+        ...
+
+    async def fetch_orders(
+        self, credentials: ShopCredentials, since: datetime, limit: int = 100
+    ) -> "list[NormalizedOrder]":
+        """ดึงออเดอร์ที่สร้างหลังเวลาที่กำหนด แล้วแปลงเป็นรูปแบบกลาง."""
+        ...
+
+    def verify_webhook(self, raw_body: bytes, signature: str) -> bool:
+        """ตรวจ signature ของ push message ว่ามาจาก marketplace จริง."""
         ...

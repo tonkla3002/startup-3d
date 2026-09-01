@@ -406,3 +406,54 @@ class FakeOAuthRegistry:
 
     def create_client(self, provider: str):
         return self._client
+
+
+@pytest.fixture
+def normalized_order_factory():
+    """สร้าง NormalizedOrder สำหรับ test."""
+    from decimal import Decimal
+
+    from app.marketplaces.base import Platform
+    from app.marketplaces.schemas import NormalizedOrder
+
+    def _create(
+        order_id: str = "217864843",
+        status: str = "pending",
+        total: str = "1250.50",
+        order_number: str | None = "217864843",
+    ) -> NormalizedOrder:
+        return NormalizedOrder(
+            platform=Platform.LAZADA,
+            account_id="100392024",
+            order_id=order_id,
+            order_number=order_number,
+            status=status,
+            total_amount=Decimal(total),
+            currency="THB",
+            created_at=datetime(2026, 9, 1, tzinfo=UTC),
+            updated_at=datetime(2026, 9, 1, 12, tzinfo=UTC),
+        )
+
+    return _create
+
+
+@pytest.fixture
+def order_client_factory(token_bundle):
+    """Client ปลอมที่คืนออเดอร์ตามที่กำหนด (หรือ raise error ที่กำหนด)."""
+
+    def _create(orders=None, fail_first_with=None):
+        client = FakeMarketplaceClient(bundle=token_bundle)
+        client.fetch_calls = 0
+        client._orders = orders or []
+        client._fail_first_with = fail_first_with
+
+        async def fetch_orders(credentials, since, limit=100):
+            client.fetch_calls += 1
+            if client._fail_first_with is not None and client.fetch_calls == 1:
+                raise client._fail_first_with
+            return client._orders
+
+        client.fetch_orders = fetch_orders
+        return client
+
+    return _create

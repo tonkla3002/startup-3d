@@ -56,7 +56,7 @@ async def receive_webhook(
     """
     raw_body = await request.body()
 
-    if not client.verify_webhook(raw_body, signature):  # type: ignore[attr-defined]
+    if not client.verify_webhook(raw_body, signature):
         logger.warning("webhook signature ไม่ถูกต้อง platform=%s", platform.value)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="signature ไม่ถูกต้อง"

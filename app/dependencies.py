@@ -1,6 +1,6 @@
 """FastAPI dependency ที่ใช้ร่วมกันหลายที่."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Annotated
 
 import httpx
@@ -101,9 +101,32 @@ async def get_current_user(
     return user
 
 
+def get_client_factory(
+    http: Annotated[httpx.AsyncClient, Depends(get_http_client)],
+) -> Callable[[Platform], MarketplaceClient]:
+    """คืนฟังก์ชันสร้าง client ตาม platform.
+
+    ใช้กับ endpoint ที่ไม่มี ``platform`` ใน path (เช่น sync ออเดอร์ของร้าน)
+    ซึ่งต้องอ่าน platform จากตัวร้านแทน
+    """
+
+    def _factory(platform: Platform) -> MarketplaceClient:
+        try:
+            return build_client(platform, http)
+        except NotImplementedError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+            ) from exc
+
+    return _factory
+
+
 HttpClient = Annotated[httpx.AsyncClient, Depends(get_http_client)]
 Cipher = Annotated[TokenCipher, Depends(get_token_cipher)]
 Client = Annotated[MarketplaceClient, Depends(get_marketplace_client)]
+ClientFactory = Annotated[
+    Callable[[Platform], MarketplaceClient], Depends(get_client_factory)
+]
 OAuthRegistry = Annotated[OAuth, Depends(get_oauth_registry)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
@@ -111,6 +134,7 @@ __all__ = [
     "AppSettings",
     "Cipher",
     "Client",
+    "ClientFactory",
     "CurrentUser",
     "DbSession",
     "HttpClient",
@@ -118,6 +142,7 @@ __all__ = [
     "OAuthSettings",
     "Security",
     "build_oauth",
+    "get_client_factory",
     "get_current_user",
     "get_marketplace_client",
     "get_oauth_registry",
