@@ -4,10 +4,11 @@ import logging
 from typing import Any
 
 from authlib.integrations.base_client import OAuthError
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from starlette.responses import RedirectResponse
 
 from app.core.oauth import GITHUB, GOOGLE, SUPPORTED_PROVIDERS
+from app.core.rate_limit import login_rate_limit
 from app.dependencies import CurrentUser, DbSession, OAuthRegistry, Security
 from app.schemas.auth import TokenOut, UserOut
 from app.services.auth_service import (
@@ -18,7 +19,11 @@ from app.services.auth_service import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"],
+    dependencies=[Depends(login_rate_limit)],  # PROJECT_RULES section 8
+)
 
 
 def _get_client(oauth: OAuthRegistry, provider: str) -> Any:

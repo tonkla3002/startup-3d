@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     database_url: str = ""
     token_encryption_key: SecretStr = SecretStr("")
+    token_refresh_worker_enabled: bool = False
 
     @property
     def is_production(self) -> bool:

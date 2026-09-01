@@ -10,8 +10,9 @@
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 
+from app.core.rate_limit import webhook_rate_limit
 from app.dependencies import Client, DbSession
 from app.marketplaces.base import Platform
 from app.schemas.webhook import WebhookAck
@@ -19,7 +20,11 @@ from app.services.webhook_service import WebhookService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/webhooks", tags=["webhooks"])
+router = APIRouter(
+    prefix="/webhooks",
+    tags=["webhooks"],
+    dependencies=[Depends(webhook_rate_limit)],
+)
 
 # ⚠️ ต้องยืนยันชื่อ header กับ docs ทางการของแต่ละเจ้าก่อน go-live
 SIGNATURE_HEADER = "x-lazada-signature"

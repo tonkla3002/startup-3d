@@ -1,8 +1,9 @@
 """FastAPI application entrypoint."""
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 import httpx
 from fastapi import FastAPI
@@ -12,6 +13,9 @@ from app.api.v1.router import api_router
 from app.core.config import get_oauth_settings, get_security_settings, get_settings
 from app.core.logging import configure_logging
 from app.core.oauth import build_oauth
+from app.core.security import TokenCipher
+from app.db.session import AsyncSessionLocal
+from app.workers.token_refresh import run_forever
 
 API_V1_PREFIX = "/api/v1"
 
@@ -31,7 +35,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.oauth = build_oauth(get_oauth_settings())
     async with httpx.AsyncClient(timeout=30.0) as client:
         app.state.http_client = client
-        yield
+
+        worker: asyncio.Task[None] | None = None
+        if settings.token_refresh_worker_enabled:
+            cipher = TokenCipher(settings.token_encryption_key.get_secret_value())
+            worker = asyncio.create_task(run_forever(AsyncSessionLocal, client, cipher))
+            logger.info("token refresh worker เริ่มทำงาน")
+
+        try:
+            yield
+        finally:
+            if worker is not None:
+                worker.cancel()
+                with suppress(asyncio.CancelledError):
+                    await worker
 
 
 def create_app() -> FastAPI:
