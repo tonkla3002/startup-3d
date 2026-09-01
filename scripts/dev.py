@@ -6,6 +6,7 @@
     uv run python scripts/dev.py token
     uv run python scripts/dev.py authorize
     uv run python scripts/dev.py exchange --code ... --state ...
+    uv run python scripts/dev.py send-test-email --to you@example.com
 """
 
 import argparse
@@ -14,6 +15,7 @@ import asyncio
 import httpx
 
 from app.core.config import (
+    get_email_settings,
     get_lazada_settings,
     get_security_settings,
     get_settings,
@@ -23,14 +25,29 @@ from app.db.session import AsyncSessionLocal
 from app.marketplaces.base import Platform
 from app.marketplaces.lazada.client import LazadaClient
 from app.services.dev_tools import (
+    build_test_email_body,
     finish_manual_authorization,
     issue_dev_token,
     start_manual_authorization,
 )
+from app.services.email_service import EmailService
 
 
 async def _run(args: argparse.Namespace) -> None:
     settings = get_settings()
+
+    if args.command == "send-test-email":
+        email_settings = get_email_settings()
+        recipient = args.to or email_settings.sender
+        print(f"\nกำลังส่งอีเมลทดสอบไปที่ {recipient} ...")
+        await EmailService(email_settings).send(
+            to=recipient,
+            subject="Streamora — ทดสอบการตั้งค่า SMTP",
+            body=build_test_email_body(settings.app_env.value),
+        )
+        print("ส่งสำเร็จ ลองเช็คกล่องจดหมาย (ดู spam ด้วย)\n")
+        return
+
     async with AsyncSessionLocal() as db:
         if args.command == "token":
             token = await issue_dev_token(
@@ -68,6 +85,10 @@ def main() -> None:
     exchange = sub.add_parser("exchange", help="แลก code เป็น token")
     exchange.add_argument("--code", required=True)
     exchange.add_argument("--state", required=True)
+    test_email = sub.add_parser("send-test-email", help="ส่งอีเมลทดสอบ 1 ฉบับ")
+    test_email.add_argument(
+        "--to", default=None, help="ผู้รับ (ไม่ระบุ = ส่งหาตัวเองตาม SMTP_FROM)"
+    )
     asyncio.run(_run(parser.parse_args()))
 
 

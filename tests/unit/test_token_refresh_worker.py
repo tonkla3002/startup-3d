@@ -33,6 +33,21 @@ def stub_build_client(monkeypatch, fake_client):
     return fake_client
 
 
+class _RecordingAlerts:
+    """AlertService ปลอมที่จดว่าแจ้งเตือนอะไรไปบ้าง."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, str]] = []
+
+    async def notify_token_refresh_failed(
+        self, platform: str, account_id: str, reason: str
+    ) -> bool:
+        self.calls.append(
+            {"platform": platform, "account_id": account_id, "reason": reason}
+        )
+        return True
+
+
 class TestRunOnce:
     async def test_refreshes_only_expiring_shops(
         self, session_factory, cipher, shop_factory, http_client
@@ -41,7 +56,9 @@ class TestRunOnce:
         await shop_factory(account_id="soon", expires_in=timedelta(minutes=1))
         await shop_factory(account_id="later", expires_in=timedelta(days=5))
         # Act
-        count = await token_refresh.run_once(session_factory, http_client, cipher)
+        count = await token_refresh.run_once(
+            session_factory, http_client, cipher, alerts=_RecordingAlerts()
+        )
         # Assert
         assert count == 1
 
@@ -49,7 +66,12 @@ class TestRunOnce:
         self, session_factory, cipher, shop_factory, http_client
     ):
         await shop_factory(expires_in=timedelta(days=5))
-        assert await token_refresh.run_once(session_factory, http_client, cipher) == 0
+        assert (
+            await token_refresh.run_once(
+                session_factory, http_client, cipher, alerts=_RecordingAlerts()
+            )
+            == 0
+        )
 
     async def test_skips_unsupported_platform(
         self, session_factory, cipher, shop_factory, http_client
@@ -58,7 +80,12 @@ class TestRunOnce:
         await shop_factory(
             account_id="tt", platform=Platform.TIKTOK, expires_in=timedelta(minutes=1)
         )
-        assert await token_refresh.run_once(session_factory, http_client, cipher) == 0
+        assert (
+            await token_refresh.run_once(
+                session_factory, http_client, cipher, alerts=_RecordingAlerts()
+            )
+            == 0
+        )
 
     async def test_one_failing_shop_does_not_stop_the_rest(
         self, session_factory, cipher, shop_factory, http_client, stub_build_client
@@ -76,10 +103,16 @@ class TestRunOnce:
             return await original(refresh_token)
 
         stub_build_client.refresh_token = flaky
+        alerts = _RecordingAlerts()
         # Act
-        count = await token_refresh.run_once(session_factory, http_client, cipher)
+        count = await token_refresh.run_once(
+            session_factory, http_client, cipher, alerts=alerts
+        )
         # Assert
         assert count == 1
+        assert len(alerts.calls) == 1
+        assert alerts.calls[0]["account_id"] == "bad"
+        assert "Boom" in alerts.calls[0]["reason"]
 
 
 class TestRunForever:

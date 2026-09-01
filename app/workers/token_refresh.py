@@ -12,12 +12,14 @@ from datetime import UTC, datetime
 import httpx
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app.core.config import get_email_settings, get_settings
 from app.core.security import TokenCipher
 from app.marketplaces.base import Platform
 from app.marketplaces.errors import MarketplaceError
 from app.marketplaces.registry import SUPPORTED_PLATFORMS, build_client
 from app.models.marketplace_shop import MarketplaceShop
 from app.repositories.shop_repository import ShopRepository
+from app.services.alert_service import AlertService
 from app.services.token_service import REFRESH_MARGIN, TokenService
 
 logger = logging.getLogger(__name__)
@@ -30,6 +32,7 @@ async def run_once(
     http: httpx.AsyncClient,
     cipher: TokenCipher,
     platforms: frozenset[Platform] = SUPPORTED_PLATFORMS,
+    alerts: AlertService | None = None,
 ) -> int:
     """Refresh ทุกร้านที่ token ใกล้หมดอายุ 1 รอบ.
 
@@ -38,6 +41,7 @@ async def run_once(
     Returns:
         จำนวนร้านที่ refresh สำเร็จ
     """
+    notifier = alerts or AlertService(get_settings(), get_email_settings())
     refreshed = 0
     async with session_factory() as db:
         deadline = datetime.now(UTC) + REFRESH_MARGIN
@@ -61,13 +65,18 @@ async def run_once(
             )
             try:
                 await service.refresh(shop)
-            except MarketplaceError:
+            except MarketplaceError as error:
                 logger.exception(
                     "refresh ไม่สำเร็จ platform=%s account_id=%s",
                     platform.value,
                     account_id,
                 )
                 await db.rollback()
+                await notifier.notify_token_refresh_failed(
+                    platform=platform.value,
+                    account_id=account_id,
+                    reason=f"{error.code}: {error.message}",
+                )
                 continue
             refreshed += 1
 

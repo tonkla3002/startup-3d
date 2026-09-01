@@ -25,8 +25,9 @@ Backend integration layer เชื่อม marketplace Open Platform (Lazada �
 - [x] 8. เพิ่ม Shopee — แก้แค่ `config.py` + `registry.py` ไม่แตะ `services/` เลย
 - [x] 9. Background worker refresh token + rate limiting
 - [x] 10. เก็บออเดอร์ลง DB + endpoint sync/list
-- [ ] 11. Deploy ขึ้น `streamora.thana-wan.duckdns.org` (config พร้อมแล้วใน `deploy/`)
-- [ ] 12. TikTok Shop
+- [x] 11. อีเมลแจ้งเตือน (SMTP + alert เมื่อ refresh token ไม่สำเร็จ) — ทดสอบส่งจริงผ่านแล้ว
+- [ ] 12. Deploy ขึ้น `streamora.thana-wan.duckdns.org` (config พร้อมแล้วใน `deploy/`)
+- [ ] 13. TikTok Shop
 
 **ยังทำไม่ได้จนกว่าจะมี credential จริง:** authorize กับ sandbox ของ Lazada จริง
 (ต้องมี App Secret + ตั้ง Callback URL ใน console)

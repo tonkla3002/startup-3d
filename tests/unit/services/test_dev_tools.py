@@ -94,3 +94,19 @@ class TestDevEmailIsUsable:
         await issue_dev_token(db_session, security_settings, is_production=False)
         user = await UserRepository(db_session).get_by_email(DEV_EMAIL)
         assert UserOut.model_validate(user).email == DEV_EMAIL
+
+
+class TestBuildTestEmailBody:
+    def test_body_mentions_environment(self):
+        from app.services.dev_tools import build_test_email_body
+
+        body = build_test_email_body("local")
+        assert "local" in body
+        assert "Streamora" in body
+
+    def test_body_is_plain_text_without_secrets(self):
+        from app.services.dev_tools import build_test_email_body
+
+        body = build_test_email_body("production")
+        assert "password" not in body.lower()
+        assert "<" not in body

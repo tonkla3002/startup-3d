@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     database_url: str = ""
     token_encryption_key: SecretStr = SecretStr("")
     token_refresh_worker_enabled: bool = False
+    alert_email_to: str = ""
 
     @property
     def is_production(self) -> bool:

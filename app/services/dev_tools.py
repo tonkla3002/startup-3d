@@ -85,3 +85,19 @@ async def finish_manual_authorization(
     service = OAuthService(db=db, client=client, cipher=cipher)
     shop = await service.complete_authorization(platform, code=code, state=state)
     return shop.account_id
+
+
+def build_test_email_body(app_env: str) -> str:
+    """ข้อความของอีเมลทดสอบ.
+
+    Args:
+        app_env: environment ที่กำลังรัน
+
+    Returns:
+        เนื้อความแบบ plain text
+    """
+    return (
+        "นี่คืออีเมลทดสอบจาก Streamora\n\n"
+        f"environment: {app_env}\n"
+        "ถ้าคุณได้รับฉบับนี้ แปลว่าตั้งค่า SMTP ถูกต้องแล้ว\n"
+    )

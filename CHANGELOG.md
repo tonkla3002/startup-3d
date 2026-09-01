@@ -62,3 +62,8 @@
 - `app/services/email_service.py` — ส่งอีเมลด้วย `aiosmtplib` (async ตามกฎ 2.4
   เพราะ `smtplib` มาตรฐานเป็น blocking) แปลง SMTP error เป็น `EmailSendError`
 - เพิ่ม `password`/`smtp_password` เข้า redaction filter ของ logging
+- `app/services/alert_service.py` — แจ้งเตือนทางอีเมลแบบ best-effort
+  (ส่งไม่ได้ = log แล้วไปต่อ ไม่ทำให้ worker พัง)
+- worker ส่งอีเมลแจ้งเตือนเมื่อ refresh token ของร้านไม่สำเร็จ
+- `scripts/dev.py send-test-email` — ทดสอบการตั้งค่า SMTP
+- `ALERT_EMAIL_TO` (ไม่ตั้ง = ใช้ `SMTP_FROM`)
