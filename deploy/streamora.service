@@ -1,0 +1,30 @@
+# systemd unit — วางที่ /etc/systemd/system/streamora.service
+# แล้ว: sudo systemctl daemon-reload && sudo systemctl enable --now streamora
+
+[Unit]
+Description=Streamora marketplace integration API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=streamora
+Group=streamora
+WorkingDirectory=/srv/streamora
+EnvironmentFile=/srv/streamora/.env
+ExecStart=/usr/local/bin/uv run fastapi run app/main.py --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+# ผูกกับ localhost เท่านั้น ให้ Caddy เป็นตัวรับจากภายนอก
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/streamora
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,20 @@
+# เพิ่ม block นี้ใน Caddyfile ของเครื่อง 119.59.103.87
+# DuckDNS มี wildcard อยู่แล้ว: streamora.thana-wan.duckdns.org ชี้มา IP เดียวกัน
+# Caddy แยกด้วย Host header โปรเจกต์ Next.js เดิมจึงไม่กระทบ
+# Caddy จะขอใบ TLS ให้อัตโนมัติผ่าน HTTP-01
+
+streamora.thana-wan.duckdns.org {
+	encode zstd gzip
+
+	# ส่ง client IP จริงให้ rate limiter ใช้ได้ถูกต้อง
+	reverse_proxy 127.0.0.1:8000 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	log {
+		output file /var/log/caddy/streamora.log
+		format json
+	}
+}

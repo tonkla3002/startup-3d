@@ -43,3 +43,16 @@
 - `alembic/script.py.mako` ใช้ syntax ใหม่ (`str | None`) เพื่อให้ migration ที่ generate ผ่าน lint เอง
 - ตั้ง `concurrency = ["thread", "greenlet"]` ใน coverage — SQLAlchemy async รันผ่าน greenlet
   ทำให้ coverage รายงานบรรทัดหลัง `await` ผิดว่าไม่ถูกรัน
+
+### Added (รอบที่ 3)
+- ตาราง `orders` + `OrderRepository` + `OrderSyncService` (upsert, refresh token แล้ว retry)
+- `POST /shops/{id}/sync/orders`, `GET /shops/{id}/orders`
+- Shopee client เต็มรูปแบบ (signer/oauth/orders/webhook) + golden test
+- `app/workers/token_refresh.py` — worker ต่ออายุ token อัตโนมัติ
+- `app/core/rate_limit.py` — sliding window limiter ที่ `/auth` และ `/webhooks`
+- `deploy/` — Caddyfile snippet, systemd unit, checklist ก่อน/หลัง deploy
+- `scripts/dev.py` — CLI ออก JWT และแลก OAuth code ด้วยมือระหว่าง dev
+
+### Changed
+- `MarketplaceClient` protocol ครบแล้ว (เพิ่ม `fetch_orders`, `verify_webhook`)
+- Postgres ใน docker-compose ย้ายไป port 55432 (5432 บนเครื่อง dev ถูก cluster อื่นใช้)

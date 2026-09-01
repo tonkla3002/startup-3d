@@ -10,7 +10,7 @@ Backend integration layer เชื่อม marketplace Open Platform (Lazada �
 | Platform | สถานะ | หมายเหตุ |
 |---|---|---|
 | Lazada | 🟡 App สร้างแล้ว (Testing) | App **Miot**, App Key `141659`, Seller In-house APP |
-| Shopee | ⏸ ค้าง | profile ยังไม่ผ่าน (ปุ่ม Next ที่ step 2 กดไม่ได้) |
+| Shopee | 🟡 โค้ดพร้อม | client + test ครบแล้ว รอ credential (profile ยังติด step 2) |
 | TikTok Shop | ⬜ ยังไม่เริ่ม | |
 
 ## ความคืบหน้า (ตาม STANDARDS section 9.1)
@@ -22,8 +22,11 @@ Backend integration layer เชื่อม marketplace Open Platform (Lazada �
 - [x] 5. `LazadaClient.fetch_orders` + normalize + retry/error mapping
 - [x] 6. Webhook receiver (verify signature + idempotent)
 - [x] 7. Auth ของผู้ใช้ระบบ: social login (Google/GitHub) + JWT + ป้องกัน endpoint
-- [ ] 8. เพิ่ม Shopee โดยไม่แก้ service layer ← **ต่อไป**
-- [ ] 9. Background worker refresh token ตามตาราง (logic มีแล้วใน `TokenService.refresh_expiring`)
+- [x] 8. เพิ่ม Shopee — แก้แค่ `config.py` + `registry.py` ไม่แตะ `services/` เลย
+- [x] 9. Background worker refresh token + rate limiting
+- [x] 10. เก็บออเดอร์ลง DB + endpoint sync/list
+- [ ] 11. Deploy ขึ้น `streamora.thana-wan.duckdns.org` (config พร้อมแล้วใน `deploy/`)
+- [ ] 12. TikTok Shop
 
 **ยังทำไม่ได้จนกว่าจะมี credential จริง:** authorize กับ sandbox ของ Lazada จริง
 (ต้องมี App Secret + ตั้ง Callback URL ใน console)
@@ -93,10 +96,18 @@ ngrok http 8000
 | `GET /api/v1/connections/{platform}/authorize` | **ใช่** | เริ่มผูกร้าน marketplace |
 | `GET /api/v1/connections/{platform}/callback` | **ใช่** | รับ code จาก marketplace |
 | `GET /api/v1/shops` | **ใช่** | รายการร้านที่ผูกไว้ |
+| `GET /api/v1/shops/{id}/orders` | **ใช่** | ออเดอร์ที่ sync เก็บไว้ |
+| `POST /api/v1/shops/{id}/sync/orders` | **ใช่** | สั่งดึงออเดอร์จาก marketplace |
 | `POST /api/v1/webhooks/{platform}` | ไม่ (verify signature แทน) | รับ push event |
 
 > `/auth/*` = login ของ **ผู้ใช้ระบบเรา**, `/connections/*` = ผูก **ร้านค้าบน marketplace**
 > คนละเรื่องกัน ตั้ง path แยกเพื่อไม่ให้ชนกัน
+
+## Deploy
+
+ดู [deploy/README.md](./deploy/README.md) — Caddyfile snippet + systemd unit พร้อมแล้ว
+ปลายทางคือ `streamora.thana-wan.duckdns.org` (DuckDNS wildcard ชี้ไปเครื่องเดิมที่รัน Caddy อยู่แล้ว
+โปรเจกต์อื่นบนเครื่องนั้นไม่กระทบเพราะ Caddy แยกด้วย Host header)
 
 ## โครงสร้าง
 
