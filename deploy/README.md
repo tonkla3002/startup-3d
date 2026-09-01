@@ -15,24 +15,48 @@
 5. อัปเดต Callback URL ใน Lazada console เป็น
    `https://streamora.thana-wan.duckdns.org/api/v1/connections/lazada/callback`
 
-## ขั้นตอน
+## ขั้นตอน — Docker (แนะนำ)
+
+ไม่ต้องลง Python หรือ uv บนเครื่อง server เลย
 
 ```bash
-# บนเครื่อง server
-sudo useradd -r -s /usr/sbin/nologin -d /srv/streamora streamora
-sudo mkdir -p /srv/streamora && sudo chown streamora:streamora /srv/streamora
-
-# copy โค้ด + .env ขึ้นไป แล้ว
+# copy โค้ด + .env ขึ้นไปที่ /srv/streamora แล้ว
 cd /srv/streamora
-uv sync --frozen --no-dev
-uv run alembic upgrade head
+docker compose -f docker-compose.prod.yml up -d --build
 
-sudo cp deploy/streamora.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now streamora
+# migration รันเองอัตโนมัติตอน container start (deploy/entrypoint.sh)
+docker compose -f docker-compose.prod.yml logs -f api
+```
 
-# เพิ่ม block จาก deploy/Caddyfile.snippet เข้า Caddyfile แล้ว
+จากนั้นเพิ่ม block จาก `deploy/Caddyfile.snippet` เข้า Caddyfile
+
+```bash
 sudo caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl reload caddy
+```
+
+**สิ่งที่ compose จัดการให้แล้ว**
+
+| | |
+|---|---|
+| migrate ตอน start | `entrypoint.sh` รอ DB พร้อม -> `alembic upgrade head` -> ค่อยเปิดรับ request ถ้า migrate พังจะหยุดเลย ไม่ปล่อยแอปขึ้นมาพังทีหลัง |
+| ผูกเฉพาะ localhost | api map ที่ `127.0.0.1:8000` เท่านั้น ออกเน็ตตรงไม่ได้ ต้องผ่าน Caddy |
+| db ไม่เปิดออก host | เข้าถึงได้จากใน network ของ compose เท่านั้น |
+| non-root | container รันด้วย uid 10001 |
+| restart | `unless-stopped` ทั้งสอง service |
+| healthcheck | ยิง `/api/v1/health` ทุก 30 วิ |
+| log rotation | json-file 10MB x 3 ไฟล์ |
+
+`POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` ตั้งใน `.env` ได้
+(ไม่ตั้ง = `streamora` ทั้งหมด — **production ต้องตั้งรหัสผ่านจริง**)
+
+## ทางเลือก — systemd (ถ้าไม่อยากใช้ Docker)
+
+```bash
+sudo useradd -r -s /usr/sbin/nologin -d /srv/streamora streamora
+cd /srv/streamora && uv sync --frozen --no-dev && uv run alembic upgrade head
+sudo cp deploy/streamora.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now streamora
 ```
 
 ## ตรวจหลัง deploy

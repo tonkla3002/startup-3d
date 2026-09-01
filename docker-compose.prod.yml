@@ -1,0 +1,69 @@
+# Production stack — ใช้คู่กับ Caddy ที่รันบน host อยู่แล้ว
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# api ผูกกับ 127.0.0.1 เท่านั้น ไม่เปิดออกเน็ตตรง ๆ ให้ Caddy เป็นตัวรับจากภายนอก
+# (ดู deploy/Caddyfile.snippet)
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # ทับค่าใน .env เพราะใน compose ต้องต่อผ่านชื่อ service ไม่ใช่ localhost
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-streamora}:${POSTGRES_PASSWORD:-streamora}@db:5432/${POSTGRES_DB:-streamora}
+      APP_ENV: production
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import urllib.request, sys
+          try:
+              with urllib.request.urlopen("http://127.0.0.1:8000/api/v1/health", timeout=3) as r:
+                  sys.exit(0 if r.status == 200 else 1)
+          except Exception:
+              sys.exit(1)
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-streamora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-streamora}
+      POSTGRES_DB: ${POSTGRES_DB:-streamora}
+    volumes:
+      - streamora_pgdata:/var/lib/postgresql/data
+    # ไม่ publish port ออก host — เข้าถึงได้จากใน network ของ compose เท่านั้น
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-streamora}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  streamora_pgdata:

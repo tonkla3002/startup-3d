@@ -67,3 +67,9 @@
 - worker ส่งอีเมลแจ้งเตือนเมื่อ refresh token ของร้านไม่สำเร็จ
 - `scripts/dev.py send-test-email` — ทดสอบการตั้งค่า SMTP
 - `ALERT_EMAIL_TO` (ไม่ตั้ง = ใช้ `SMTP_FROM`)
+- `docker-compose.prod.yml` + `deploy/entrypoint.sh` — deploy ด้วย Docker
+  (migrate อัตโนมัติตอน start, non-root, healthcheck, restart, log rotation,
+  api ผูก 127.0.0.1 เท่านั้น, db ไม่เปิด port ออก host)
+- Dockerfile copy `alembic/` + `alembic.ini` ด้วย (เดิมขาด ทำให้ migrate ใน container ไม่ได้)
+- runtime เรียก binary ใน `/srv/.venv` ตรง ๆ ไม่ผ่าน `uv run` เพราะ uv เขียน cache
+  ที่ `$HOME` ไม่ได้เมื่อรันด้วย non-root
