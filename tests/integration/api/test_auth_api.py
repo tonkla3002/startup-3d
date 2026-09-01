@@ -110,18 +110,21 @@ class TestUnsupportedPlatform:
         )
         assert response.status_code == 404
 
-    async def test_shopee_is_now_implemented(
+    async def test_shopee_without_credentials_returns_503(
         self, api_client, user_factory, auth_headers
     ):
-        """Shopee เพิ่มแล้ว — endpoint เดิมใช้ได้ทันทีโดยไม่ต้องแก้ service layer."""
+        """Shopee implement แล้วแต่ยังไม่มี credential — ต้องบอกตรง ๆ ว่ายังตั้งค่าไม่ครบ
+
+        ไม่ใช่ redirect ผู้ขายไปด้วย partner_id ว่าง ซึ่งจะได้ error งง ๆ จากฝั่ง Shopee
+        """
         user = await user_factory(email="op3@example.com")
         response = await api_client.get(
             "/api/v1/connections/shopee/authorize",
             headers=auth_headers(user),
             follow_redirects=False,
         )
-        assert response.status_code == 307
-        assert "auth_partner" in response.headers["location"]
+        assert response.status_code == 503
+        assert "shopee" in response.json()["detail"]
 
 
 class TestPlatformEnum:

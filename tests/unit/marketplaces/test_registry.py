@@ -39,3 +39,21 @@ class TestProtocolConformance:
         ):
             assert callable(getattr(client, method)), f"{platform} ขาด {method}"
         assert client.platform is platform
+
+
+class TestIsConfigured:
+    def test_lazada_is_configured_in_test_env(self):
+        """conftest ตั้ง LAZADA_APP_KEY/SECRET ไว้ให้แล้ว."""
+        from app.marketplaces.registry import is_configured
+
+        assert is_configured(Platform.LAZADA) is True
+
+    def test_shopee_without_credentials_is_not_configured(self):
+        from app.marketplaces.registry import is_configured
+
+        assert is_configured(Platform.SHOPEE) is False
+
+    def test_unimplemented_platform_is_not_configured(self):
+        from app.marketplaces.registry import is_configured
+
+        assert is_configured(Platform.TIKTOK) is False

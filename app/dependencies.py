@@ -25,7 +25,7 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.marketplaces.base import MarketplaceClient, Platform
-from app.marketplaces.registry import build_client
+from app.marketplaces.registry import build_client, is_configured
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 
@@ -53,21 +53,33 @@ def get_oauth_registry(request: Request) -> OAuth:
     return registry
 
 
-def get_marketplace_client(
-    platform: Platform,
-    http: Annotated[httpx.AsyncClient, Depends(get_http_client)],
-) -> MarketplaceClient:
-    """สร้าง client ตาม platform ที่อยู่ใน path.
+def _build_or_fail(platform: Platform, http: httpx.AsyncClient) -> MarketplaceClient:
+    """สร้าง client พร้อมตรวจว่า platform นั้นพร้อมใช้งานจริง.
 
     Raises:
-        HTTPException: 404 เมื่อยังไม่รองรับ platform นั้น
+        HTTPException: 404 เมื่อยังไม่ implement, 503 เมื่อยังไม่ได้ตั้ง credential
     """
     try:
-        return build_client(platform, http)
+        client = build_client(platform, http)
     except NotImplementedError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
         ) from exc
+
+    if not is_configured(platform):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"ยังไม่ได้ตั้งค่า credential ของ {platform.value}",
+        )
+    return client
+
+
+def get_marketplace_client(
+    platform: Platform,
+    http: Annotated[httpx.AsyncClient, Depends(get_http_client)],
+) -> MarketplaceClient:
+    """สร้าง client ตาม platform ที่อยู่ใน path."""
+    return _build_or_fail(platform, http)
 
 
 async def get_current_user(
@@ -111,12 +123,7 @@ def get_client_factory(
     """
 
     def _factory(platform: Platform) -> MarketplaceClient:
-        try:
-            return build_client(platform, http)
-        except NotImplementedError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
-            ) from exc
+        return _build_or_fail(platform, http)
 
     return _factory
 

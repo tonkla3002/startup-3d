@@ -18,7 +18,8 @@ from app.services.oauth_service import OAuthService
 
 logger = logging.getLogger(__name__)
 
-DEV_EMAIL = "dev@streamora.local"
+# ห้ามใช้ TLD สงวน (.local/.test/.example) — EmailStr ปฏิเสธ ทำให้ /auth/me พัง 500
+DEV_EMAIL = "dev@streamora.dev"
 
 
 class DevToolsDisabledError(StreamoraError):

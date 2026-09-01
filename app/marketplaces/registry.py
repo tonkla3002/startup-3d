@@ -29,6 +29,23 @@ CLIENT_FACTORIES: dict[Platform, Callable[[httpx.AsyncClient], MarketplaceClient
 
 SUPPORTED_PLATFORMS = frozenset(CLIENT_FACTORIES)
 
+SETTINGS_FACTORIES: dict[Platform, Callable[[], object]] = {
+    Platform.LAZADA: LazadaSettings,
+    Platform.SHOPEE: ShopeeSettings,
+}
+
+
+def is_configured(platform: Platform) -> bool:
+    """True เมื่อ platform นั้นตั้ง credential ครบแล้ว.
+
+    กันไม่ให้ redirect ผู้ขายไปหน้า authorize ด้วย app_key ว่าง ซึ่งจะได้ error
+    หน้าตาไม่รู้เรื่องจากฝั่ง marketplace แทนที่จะบอกตรง ๆ ว่ายังไม่ได้ตั้งค่า
+    """
+    build_settings = SETTINGS_FACTORIES.get(platform)
+    if build_settings is None:
+        return False
+    return bool(getattr(build_settings(), "is_configured", False))
+
 
 def build_client(platform: Platform, http: httpx.AsyncClient) -> MarketplaceClient:
     """สร้าง client ของ platform ที่ระบุ.

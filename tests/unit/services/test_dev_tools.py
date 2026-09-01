@@ -72,3 +72,25 @@ class TestManualAuthorization:
             await finish_manual_authorization(
                 db_session, fake_client, cipher, Platform.LAZADA, "c", "forged"
             )
+
+
+class TestDevEmailIsUsable:
+    def test_dev_email_passes_response_schema_validation(self):
+        """regression: เดิมใช้ .local ซึ่ง EmailStr ปฏิเสธ ทำให้ /auth/me พัง 500
+
+        TLD สงวน (.local/.test/.example/.invalid) ใช้กับ EmailStr ไม่ได้
+        """
+        from app.schemas.auth import UserOut
+
+        user = UserOut(id=1, email=DEV_EMAIL, full_name="Dev User", is_active=True)
+        assert user.email == DEV_EMAIL
+
+    async def test_dev_user_can_be_serialised_after_creation(
+        self, db_session, security_settings
+    ):
+        from app.repositories.user_repository import UserRepository
+        from app.schemas.auth import UserOut
+
+        await issue_dev_token(db_session, security_settings, is_production=False)
+        user = await UserRepository(db_session).get_by_email(DEV_EMAIL)
+        assert UserOut.model_validate(user).email == DEV_EMAIL
