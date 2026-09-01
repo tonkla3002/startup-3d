@@ -10,6 +10,8 @@ SENSITIVE_KEYS: tuple[str, ...] = (
     "refresh_token",
     "sign",
     "code",
+    "smtp_password",
+    "password",
 )
 
 _REDACTED = "***REDACTED***"

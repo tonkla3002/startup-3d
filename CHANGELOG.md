@@ -56,3 +56,9 @@
 ### Changed
 - `MarketplaceClient` protocol ครบแล้ว (เพิ่ม `fetch_orders`, `verify_webhook`)
 - Postgres ใน docker-compose ย้ายไป port 55432 (5432 บนเครื่อง dev ถูก cluster อื่นใช้)
+
+### Added (อีเมล)
+- `EmailSettings` (env prefix `SMTP_`) — password เป็น `SecretStr`
+- `app/services/email_service.py` — ส่งอีเมลด้วย `aiosmtplib` (async ตามกฎ 2.4
+  เพราะ `smtplib` มาตรฐานเป็น blocking) แปลง SMTP error เป็น `EmailSendError`
+- เพิ่ม `password`/`smtp_password` เข้า redaction filter ของ logging

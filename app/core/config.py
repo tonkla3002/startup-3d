@@ -73,6 +73,33 @@ def get_lazada_settings() -> LazadaSettings:
 MIN_SECRET_BYTES = 32
 
 
+class EmailSettings(BaseSettings):
+    """SMTP config สำหรับส่งอีเมลแจ้งเตือน."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="SMTP_", env_file=".env", extra="ignore"
+    )
+
+    host: str = ""
+    port: int = 587
+    user: str = ""
+    password: SecretStr = SecretStr("")
+    from_address: str = ""
+    use_tls: bool = False
+    start_tls: bool = True
+    timeout_seconds: int = 15
+
+    @property
+    def is_configured(self) -> bool:
+        """True เมื่อตั้งค่า SMTP ครบพอที่จะส่งอีเมลได้จริง."""
+        return bool(self.host and self.user and self.password.get_secret_value())
+
+    @property
+    def sender(self) -> str:
+        """ที่อยู่ผู้ส่ง — ถ้าไม่ได้ตั้ง SMTP_FROM ให้ใช้ SMTP_USER แทน."""
+        return self.from_address or self.user
+
+
 class ShopeeSettings(BaseSettings):
     """Credential และ endpoint ของ Shopee Open Platform."""
 
@@ -139,6 +166,12 @@ class OAuthProviderSettings(BaseSettings):
         client_id = getattr(self, f"{provider}_client_id", "")
         secret = getattr(self, f"{provider}_client_secret", None)
         return bool(client_id and secret and secret.get_secret_value())
+
+
+@lru_cache
+def get_email_settings() -> EmailSettings:
+    """คืน EmailSettings แบบ cache ไว้."""
+    return EmailSettings()
 
 
 @lru_cache

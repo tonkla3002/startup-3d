@@ -490,3 +490,18 @@ def shopee_client(http_client, shopee_settings):
         backoff_seconds=0.0,
         sleep=_no_sleep,
     )
+
+
+@pytest.fixture
+def email_settings():
+    """EmailSettings ปลอมสำหรับ test — ไม่ใช่ค่าจริง และไม่ต่อ SMTP จริง."""
+    from app.core.config import EmailSettings
+
+    return EmailSettings(
+        host="smtp.test.local",
+        port=587,
+        user="sender@example.com",
+        password="test-app-password",
+        from_address="sender@example.com",
+        _env_file=None,
+    )
