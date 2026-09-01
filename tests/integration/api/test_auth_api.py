@@ -98,17 +98,30 @@ class TestCallbackEndpoint:
 
 
 class TestUnsupportedPlatform:
-    async def test_shopee_not_implemented_returns_404(
+    async def test_tiktok_not_implemented_returns_404(
         self, api_client, user_factory, auth_headers
     ):
         """platform ที่ยังไม่ implement ต้องตอบ 404 ไม่ใช่ 500."""
         user = await user_factory(email="op2@example.com")
         response = await api_client.get(
-            "/api/v1/connections/shopee/authorize",
+            "/api/v1/connections/tiktok/authorize",
             headers=auth_headers(user),
             follow_redirects=False,
         )
         assert response.status_code == 404
+
+    async def test_shopee_is_now_implemented(
+        self, api_client, user_factory, auth_headers
+    ):
+        """Shopee เพิ่มแล้ว — endpoint เดิมใช้ได้ทันทีโดยไม่ต้องแก้ service layer."""
+        user = await user_factory(email="op3@example.com")
+        response = await api_client.get(
+            "/api/v1/connections/shopee/authorize",
+            headers=auth_headers(user),
+            follow_redirects=False,
+        )
+        assert response.status_code == 307
+        assert "auth_partner" in response.headers["location"]
 
 
 class TestPlatformEnum:

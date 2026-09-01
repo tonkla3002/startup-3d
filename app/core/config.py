@@ -72,6 +72,26 @@ def get_lazada_settings() -> LazadaSettings:
 MIN_SECRET_BYTES = 32
 
 
+class ShopeeSettings(BaseSettings):
+    """Credential และ endpoint ของ Shopee Open Platform."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="SHOPEE_", env_file=".env", extra="ignore"
+    )
+
+    partner_id: str = ""
+    partner_key: SecretStr = SecretStr("")
+    api_base_url: str = "https://partner.test-stable.shopeemobile.com"
+    redirect_uri: str = ""
+    webhook_url: str = ""
+    default_shop_id: str = ""
+
+    @property
+    def is_configured(self) -> bool:
+        """True เมื่อมี credential ครบพอที่จะเรียก API ได้จริง."""
+        return bool(self.partner_id and self.partner_key.get_secret_value())
+
+
 class SecuritySettings(BaseSettings):
     """Secret สำหรับ session และ JWT.
 
@@ -118,6 +138,12 @@ class OAuthProviderSettings(BaseSettings):
         client_id = getattr(self, f"{provider}_client_id", "")
         secret = getattr(self, f"{provider}_client_secret", None)
         return bool(client_id and secret and secret.get_secret_value())
+
+
+@lru_cache
+def get_shopee_settings() -> ShopeeSettings:
+    """คืน ShopeeSettings แบบ cache ไว้."""
+    return ShopeeSettings()
 
 
 @lru_cache

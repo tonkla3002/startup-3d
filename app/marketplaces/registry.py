@@ -8,17 +8,23 @@ from collections.abc import Callable
 
 import httpx
 
-from app.core.config import LazadaSettings
+from app.core.config import LazadaSettings, ShopeeSettings
 from app.marketplaces.base import MarketplaceClient, Platform
 from app.marketplaces.lazada.client import LazadaClient
+from app.marketplaces.shopee.client import ShopeeClient
 
 
 def _build_lazada(http: httpx.AsyncClient) -> MarketplaceClient:
     return LazadaClient(http=http, settings=LazadaSettings())
 
 
+def _build_shopee(http: httpx.AsyncClient) -> MarketplaceClient:
+    return ShopeeClient(http=http, settings=ShopeeSettings())
+
+
 CLIENT_FACTORIES: dict[Platform, Callable[[httpx.AsyncClient], MarketplaceClient]] = {
     Platform.LAZADA: _build_lazada,
+    Platform.SHOPEE: _build_shopee,
 }
 
 SUPPORTED_PLATFORMS = frozenset(CLIENT_FACTORIES)

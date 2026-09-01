@@ -457,3 +457,36 @@ def order_client_factory(token_bundle):
         return client
 
     return _create
+
+
+@pytest.fixture
+def shopee_settings():
+    """Settings ของ Shopee ที่ชี้ไปโดเมนปลอม."""
+    from app.core.config import ShopeeSettings
+
+    return ShopeeSettings(
+        partner_id="2001234",
+        partner_key="test-partner-key",
+        api_base_url="https://partner.shopee.test",
+        redirect_uri="https://test.local/api/v1/connections/shopee/callback",
+        webhook_url="https://test.local/api/v1/webhooks/shopee",
+        default_shop_id="210251695",
+        _env_file=None,
+    )
+
+
+@pytest.fixture
+def shopee_client(http_client, shopee_settings):
+    """ShopeeClient ที่ไม่หน่วงเวลาจริงตอน retry."""
+    from app.marketplaces.shopee.client import ShopeeClient
+
+    async def _no_sleep(_seconds: float) -> None:
+        return None
+
+    return ShopeeClient(
+        http=http_client,
+        settings=shopee_settings,
+        max_attempts=3,
+        backoff_seconds=0.0,
+        sleep=_no_sleep,
+    )
