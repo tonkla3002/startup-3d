@@ -73,3 +73,6 @@
 - Dockerfile copy `alembic/` + `alembic.ini` ด้วย (เดิมขาด ทำให้ migrate ใน container ไม่ได้)
 - runtime เรียก binary ใน `/srv/.venv` ตรง ๆ ไม่ผ่าน `uv run` เพราะ uv เขียน cache
   ที่ `$HOME` ไม่ได้เมื่อรันด้วย non-root
+- `deploy/issue-cert.sh` — ออก/ต่ออายุ TLS cert ด้วย DNS-01 (DuckDNS) บนเครื่อง dev
+  แล้วส่งขึ้น VPS เพราะ VPS ถูกบล็อก inbound จากต่างประเทศ (Let's Encrypt ตรวจไม่ได้)
+  และ outbound ไป duckdns.org ก็ไม่ได้ ทำให้ Caddy ขอ cert เองไม่ได้
