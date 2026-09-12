@@ -31,10 +31,13 @@ pipeline {
             }
         }
 
-        stage('Build & Deploy') {
+        stage('Deploy') {
             steps {
                 dir('/opt/streamora') {
-                    sh 'docker compose -f docker-compose.prod.yml up -d --build'
+                    // VPS บล็อก Docker Hub จึง build image ใหม่ไม่ได้
+                    // แทนด้วยการ copy code เข้า container ที่รันอยู่ แล้ว restart
+                    sh 'docker cp app/. streamora-api-1:/srv/app/'
+                    sh 'docker compose -f docker-compose.prod.yml -f docker-compose.vps.yml restart api'
                 }
             }
         }
