@@ -5,6 +5,8 @@ Authlib จัดการ ``state``/``nonce``/PKCE ให้อัตโนม�
 ``authorize_redirect`` คู่กับ ``authorize_access_token`` — ห้าม bypass
 """
 
+import os
+
 from authlib.integrations.starlette_client import OAuth
 
 from app.core.config import OAuthProviderSettings
@@ -18,10 +20,12 @@ GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_API_BASE_URL = "https://api.github.com/"
 
 # hardcode แทน server_metadata_url เพราะ VPS outbound ถูกบล็อก
+# ถ้ามี GOOGLE_PROXY_BASE_URL (Cloudflare Worker) ใช้ proxy แทนเพื่อเลี่ยง firewall
 GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
-GOOGLE_JWK_SET_URL = "https://www.googleapis.com/oauth2/v3/certs"
+_PROXY = os.getenv("GOOGLE_PROXY_BASE_URL", "").rstrip("/")
+GOOGLE_TOKEN_URL = f"{_PROXY}/token" if _PROXY else "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = f"{_PROXY}/v1/userinfo" if _PROXY else "https://openidconnect.googleapis.com/v1/userinfo"
+GOOGLE_JWK_SET_URL = f"{_PROXY}/oauth2/v3/certs" if _PROXY else "https://www.googleapis.com/oauth2/v3/certs"
 
 
 def build_oauth(settings: OAuthProviderSettings) -> OAuth:
