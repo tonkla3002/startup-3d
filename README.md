@@ -116,3 +116,4 @@ ngrok http 8000
 
 - `app/api/` รับ HTTP → `app/services/` business logic → `app/repositories/` DB
 - `app/marketplaces/` คุย API ภายนอก (sign / OAuth / retry) — ห้ามแตะ DB ห้ามรู้จัก FastAPI
+# streamora
