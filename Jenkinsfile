@@ -13,7 +13,10 @@ pipeline {
     stages {
         stage('Pull latest code') {
             steps {
-                sh 'cd /opt/streamora && git pull origin main'
+                sh '''
+                    git config --global --add safe.directory /opt/streamora
+                    cd /opt/streamora && git pull origin main
+                '''
             }
         }
 
