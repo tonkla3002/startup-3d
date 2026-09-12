@@ -1,0 +1,12 @@
+# override สำหรับ VPS ที่ DNS ขาออกใช้ไม่ได้
+# ใช้ image ที่ build มาจากเครื่อง dev แล้วโอนเข้ามา ไม่ต้อง build บนเครื่องนี้
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.vps.yml up -d
+#
+services:
+  api:
+    image: streamora-api:amd64
+    pull_policy: never
+    build: !reset null
+  db:
+    pull_policy: never
