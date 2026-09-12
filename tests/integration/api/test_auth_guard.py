@@ -5,7 +5,6 @@ import pytest
 PROTECTED = [
     ("get", "/api/v1/shops"),
     ("get", "/api/v1/connections/lazada/authorize"),
-    ("get", "/api/v1/connections/lazada/callback?code=c&state=s"),
 ]
 
 
@@ -31,6 +30,46 @@ class TestProtectedEndpoints:
         user = await user_factory(is_active=False)
         response = await api_client.get("/api/v1/shops", headers=auth_headers(user))
         assert response.status_code == 401
+
+
+class TestOAuthCallbackIsPublic:
+    """callback ต้องไม่บังคับ JWT.
+
+    marketplace redirect **browser** กลับมา ซึ่งไม่มี header Authorization
+    ถ้าบังคับ JWT จะได้ 401 ทุกครั้งและ authorize ไม่มีวันสำเร็จ
+    ด่านป้องกันคือ ``state`` ไม่ใช่ JWT
+    """
+
+    async def test_callback_without_token_is_not_401(
+        self, api_client, fake_client, cipher
+    ):
+        # Arrange
+        from app.dependencies import get_marketplace_client, get_token_cipher
+
+        app = api_client._transport.app
+        app.dependency_overrides[get_marketplace_client] = lambda: fake_client
+        app.dependency_overrides[get_token_cipher] = lambda: cipher
+        # Act — ไม่ใส่ Authorization header เลย
+        response = await api_client.get(
+            "/api/v1/connections/lazada/callback",
+            params={"code": "c", "state": "forged"},
+        )
+        # Assert — 400 (state ผิด) ไม่ใช่ 401 (ไม่ได้ล็อกอิน)
+        assert response.status_code == 400
+
+    async def test_callback_still_rejects_forged_state(
+        self, api_client, fake_client, cipher
+    ):
+        from app.dependencies import get_marketplace_client, get_token_cipher
+
+        app = api_client._transport.app
+        app.dependency_overrides[get_marketplace_client] = lambda: fake_client
+        app.dependency_overrides[get_token_cipher] = lambda: cipher
+        response = await api_client.get(
+            "/api/v1/connections/lazada/callback",
+            params={"code": "c", "state": "ไม่เคยออกให้"},
+        )
+        assert response.status_code == 400
 
 
 class TestPublicEndpoints:

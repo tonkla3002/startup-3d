@@ -36,6 +36,26 @@ class TestAuthorizeEndpoint:
 
 
 class TestCallbackEndpoint:
+    async def test_full_flow_authorize_then_callback_without_header(
+        self, auth_client, api_client
+    ):
+        """จำลองของจริง: authorize ด้วย JWT แล้ว browser เรียก callback แบบไม่มี header"""
+        # Arrange
+        redirect = await auth_client.get(
+            "/api/v1/connections/lazada/authorize", follow_redirects=False
+        )
+        state = redirect.headers["location"].split("state=")[1]
+        # Act — ลบ header ออกเหมือน browser ที่ redirect มา
+        headers = dict(api_client.headers)
+        headers.pop("authorization", None)
+        response = await api_client.get(
+            "/api/v1/connections/lazada/callback",
+            params={"code": "c-1", "state": state},
+            headers={"authorization": ""},
+        )
+        # Assert
+        assert response.status_code == 200
+
     async def test_callback_with_valid_state_authorizes_shop(self, auth_client):
         # Arrange
         redirect = await auth_client.get(

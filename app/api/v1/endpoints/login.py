@@ -7,6 +7,7 @@ from authlib.integrations.base_client import OAuthError
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from starlette.responses import RedirectResponse
 
+from app.core.config import get_oauth_settings
 from app.core.oauth import GITHUB, GOOGLE, SUPPORTED_PROVIDERS
 from app.core.rate_limit import login_rate_limit
 from app.dependencies import CurrentUser, DbSession, OAuthRegistry, Security
@@ -83,7 +84,8 @@ async def oauth_login(
 ) -> RedirectResponse:
     """เริ่ม social login — redirect ไปหน้า consent ของ provider."""
     client = _get_client(oauth, provider)
-    redirect_uri = str(request.url_for("oauth_callback", provider=provider))
+    base = get_oauth_settings().oauth_redirect_base_url.rstrip("/")
+    redirect_uri = f"{base}/api/v1/auth/{provider}/callback"
     result: RedirectResponse = await client.authorize_redirect(request, redirect_uri)
     return result
 

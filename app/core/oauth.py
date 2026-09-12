@@ -13,10 +13,15 @@ GOOGLE = "google"
 GITHUB = "github"
 SUPPORTED_PROVIDERS = frozenset({GOOGLE, GITHUB})
 
-GOOGLE_METADATA_URL = "https://accounts.google.com/.well-known/openid-configuration"
 GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
 GITHUB_API_BASE_URL = "https://api.github.com/"
+
+# hardcode แทน server_metadata_url เพราะ VPS outbound ถูกบล็อก
+GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
+GOOGLE_JWK_SET_URL = "https://www.googleapis.com/oauth2/v3/certs"
 
 
 def build_oauth(settings: OAuthProviderSettings) -> OAuth:
@@ -35,7 +40,10 @@ def build_oauth(settings: OAuthProviderSettings) -> OAuth:
             name=GOOGLE,
             client_id=settings.google_client_id,
             client_secret=settings.google_client_secret.get_secret_value(),
-            server_metadata_url=GOOGLE_METADATA_URL,
+            authorize_url=GOOGLE_AUTHORIZE_URL,
+            access_token_url=GOOGLE_TOKEN_URL,
+            userinfo_endpoint=GOOGLE_USERINFO_URL,
+            jwks_uri=GOOGLE_JWK_SET_URL,
             client_kwargs={
                 "scope": "openid email profile",
                 "code_challenge_method": "S256",

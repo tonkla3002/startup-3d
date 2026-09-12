@@ -12,14 +12,21 @@ from app.marketplaces.base import Platform
 from app.marketplaces.errors import MarketplaceError
 from app.services.oauth_service import InvalidOAuthStateError, OAuthService
 
-router = APIRouter(
-    prefix="/connections",
-    tags=["connections"],
-    dependencies=[Depends(get_current_user)],  # ทุก endpoint ต้องล็อกอินก่อน
+# หมายเหตุสำคัญ: auth ติดเป็นราย endpoint ไม่ใช่ทั้ง router
+#
+# * /authorize — ผู้ใช้ระบบเราเป็นคนเริ่ม จึงต้องมี JWT
+# * /callback  — marketplace redirect **browser** กลับมา ซึ่งไม่มี header
+#   Authorization ติดมาด้วย ถ้าบังคับ JWT จะได้ 401 ทุกครั้งและ authorize
+#   ไม่มีวันสำเร็จ ด่านป้องกันของ callback คือ ``state`` ที่สุ่มไว้ตอน authorize
+#   (ใช้ได้ครั้งเดียว หมดอายุใน 10 นาที ผูกกับ platform) ตามมาตรฐาน OAuth
+router = APIRouter(prefix="/connections", tags=["connections"])
+
+
+@router.get(
+    "/{platform}/authorize",
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    dependencies=[Depends(get_current_user)],
 )
-
-
-@router.get("/{platform}/authorize", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 async def authorize(
     platform: Platform,
     db: DbSession,
